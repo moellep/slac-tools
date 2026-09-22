@@ -11,6 +11,9 @@ classifiers = [
 ]
 dependencies = [
     "pyepics",
+    "h5py",
+    "numpy",
+    "pydantic",
 ]
 description = "Shared utilities for LCLS high-level applications"
 name = "slac-tools"
