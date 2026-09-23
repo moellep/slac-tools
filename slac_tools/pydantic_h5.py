@@ -274,12 +274,12 @@ def _read_ndarray(group: h5py.Group, path: str) -> numpy.ndarray | None:
 
 
 def _read_scalar(group: h5py.Group, path: str, ann: typing.Any) -> typing.Any:
-    # plain scalar: str / int / float / bool
+    # plain scalar (str/int/float/bool), or an unsupported annotation (e.g. Literal, Enum)
     if path not in group.attrs:
         return None
-    value = group.attrs[path]
+    value = _decode(group.attrs[path])
     if ann in (str, int, float, bool):
-        return ann(value) if ann is not str else _decode(value)
+        return ann(value)
     return value
 
 

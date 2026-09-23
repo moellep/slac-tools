@@ -21,14 +21,16 @@ class Sample(pydantic.BaseModel):
     """One model touching every field category pydantic_h5.py dispatches
     on: scalars, datetime, tuple, list[str], required/Optional ndarray
     (including an object-dtype one with a None entry), dict[str,
-    BaseModel], list[BaseModel], list[ndarray] (including ragged), and a
-    bare dict[str, Any] structure-driven blob."""
+    BaseModel], list[BaseModel], list[ndarray] (including ragged), a
+    Literal (falls to _read_scalar's fallback, not its str/int/float/bool
+    branch), and a bare dict[str, Any] structure-driven blob."""
 
     model_config = pydantic.ConfigDict(arbitrary_types_allowed=True)
     name: str
     count: int
     ratio: float
     active: bool
+    physics_model: typing.Literal["BMAD", "BLEM", "Lucretia"] = "BMAD"
     timestamp: datetime.datetime
     tags: list[str]
     coordinates: tuple[float, float]
@@ -75,6 +77,20 @@ def test_list_of_ragged_arrays(tmp_path):
         ]
     )
     _assert_equal(s, _round_trip(s, tmp_path))
+
+
+def test_literal_field_decodes_bytes_attr(tmp_path):
+    # simulate reading historical file writted with fixed-length string dtype
+    s = _make_sample(physics_model="BLEM")
+    p = tmp_path / "out.h5"
+    with h5py.File(p, "w") as f:
+        slac_tools.pydantic_h5.save_model(s, f)
+        del f.attrs["physics_model"]
+        f.attrs.create("physics_model", data=numpy.bytes_(b"BLEM"))
+    with h5py.File(p, "r") as f:
+        loaded = slac_tools.pydantic_h5.load_model(Sample, f)
+    assert loaded.physics_model == "BLEM"
+    assert isinstance(loaded.physics_model, str)
 
 
 def test_name_map_manual_and_skip(tmp_path):
