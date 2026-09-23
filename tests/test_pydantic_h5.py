@@ -87,9 +87,7 @@ def test_name_map_manual_and_skip(tmp_path):
         return (float(x), float(y))
 
     name_map = {"reading": "meta/reading"}
-    skip = {"notes"}
-
-    s = _make_sample()
+    s = _make_sample(optional_reading=numpy.array([9.9]))
     p = tmp_path / "out.h5"
     with h5py.File(p, "w") as f:
         slac_tools.pydantic_h5.save_model(
@@ -97,13 +95,15 @@ def test_name_map_manual_and_skip(tmp_path):
             f,
             name_map=name_map,
             manual={"coordinates": _write_coordinates},
-            skip=skip,
+            skip={"rms_sizes"},
         )
         assert "reading" not in f
         assert "meta/reading" in f
         assert "coordinates" not in f
         assert f.attrs["coordinates"] == "1.5,-2.5"
-        assert "notes" not in f.attrs
+        assert "rms_sizes" not in f
+        assert "optional_reading" in f
+        assert f.attrs["count"] == 7
 
     with h5py.File(p, "r") as f:
         loaded = slac_tools.pydantic_h5.load_model(
@@ -111,13 +111,18 @@ def test_name_map_manual_and_skip(tmp_path):
             f,
             name_map=name_map,
             manual={"coordinates": _read_coordinates},
-            skip=skip,
-            extra={"notes": lambda resolved: f"derived from {resolved['name']}"},
+            skip={"optional_reading"},
+            extra={
+                "notes": lambda resolved: f"derived from {resolved['name']}",
+                "count": 99,
+            },
         )
 
     numpy.testing.assert_equal(loaded.reading, s.reading)
     assert loaded.coordinates == s.coordinates
+    assert loaded.optional_reading is None
     assert loaded.notes == f"derived from {s.name}"
+    assert loaded.count == 99
 
 
 def test_nan_and_back(tmp_path):

@@ -36,9 +36,10 @@ changing the generic dispatch itself.
   flattened into paired *_start/*_end attributes instead of a subgroup).
 - `skip`: field names to leave out of this call entirely.
 - `extra` (load only): field name -> a value, or a callable given the
-  already-resolved fields, supplied after the generic read -- for a
-  field that was skipped, e.g. reconstructed from another field that
-  was just loaded.
+  already-resolved fields, supplied after the generic read -- e.g.
+  reconstructed from another field that was just loaded. A field named
+  in `extra` is implicitly skipped, so it never needs to also be named
+  in `skip`.
 
 `name_map`/`manual` propagate into nested recursive calls (they're
 field-name -> behavior maps meant to apply wherever that field occurs);
@@ -79,7 +80,7 @@ def load_model(
     extra = extra or {}
     resolved: dict[str, typing.Any] = {}
     for field_name, field in model_cls.model_fields.items():
-        if field_name in skip:
+        if field_name in skip or field_name in extra:
             continue
         if field_name in manual:
             value = manual[field_name](group)
