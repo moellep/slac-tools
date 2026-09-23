@@ -44,6 +44,15 @@ class Sample(pydantic.BaseModel):
     raw_data: dict[str, typing.Any]
 
 
+def test_dict_key_with_slash_raises(tmp_path):
+    # h5py treats "/" as a path separator, so a raw dict key containing
+    # one would silently create nested groups instead of a single group
+    # literally named that key -- must raise instead.
+    s = _make_sample(raw_data={"BPM27201/x": numpy.array([0.1, 0.2])})
+    with pytest.raises(ValueError, match="BPM27201/x"):
+        _round_trip(s, tmp_path)
+
+
 def test_empty_lists_and_back(tmp_path):
     s = _make_sample(scans=[], series=[])
     _assert_equal(s, _round_trip(s, tmp_path))

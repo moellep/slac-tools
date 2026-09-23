@@ -324,6 +324,13 @@ def _write(
         for key, item in value.items():
             if item is None:
                 continue
+            if isinstance(key, str) and "/" in key:
+                # h5py treats "/" as a path separator, so this would
+                # silently create nested groups instead of one group
+                # literally named `key`.
+                raise ValueError(
+                    f"dict key {key!r} contains '/'; use `manual` for this field"
+                )
             _write(sub, key, item, name_map, manual)
     elif isinstance(value, datetime.datetime):
         group.attrs[name] = value.isoformat()
