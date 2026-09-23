@@ -10,6 +10,16 @@ load_model(model_cls, group, ...) is the mirror image: it rebuilds a
 model_cls instance by reading each declared field back out of `group`
 and calling model_cls(**fields).
 
+Simple case, no overrides needed:
+
+    class Measurement(pydantic.BaseModel):
+        ...
+
+    with h5py.File(path, "w") as f:
+        save_model(m, f)
+    with h5py.File(path, "r") as f:
+        m = load_model(Measurement, f)
+
 Optional overrides, shared by both functions unless noted. Together
 they're the hooks for backward compatibility with older on-disk model
 shapes: a model class can evolve (fields renamed, restructured, or
