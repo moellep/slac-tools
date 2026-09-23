@@ -186,20 +186,24 @@ def _read_dict(
     is_model = isinstance(value_type, type) and issubclass(
         value_type, pydantic.BaseModel
     )
+    # scalar-valued keyed to attrs and non scalars to the group keys
+    keys = set(sub.attrs.keys()).union(sub.keys())
     return {
         key: (
             load_model(value_type, sub[key], name_map, manual)
             if is_model
             else _read_leaf(sub, key)
         )
-        for key in sub.keys()
+        for key in keys
     }
 
 
 def _read_leaf(group: h5py.Group, key: str) -> typing.Any:
     """Reads container-of-Any fields (e.g. raw_data, metadata):
-    Datasets get mapped directly.
-    Groups are recursively mapped into a dictionary."""
+    plain attrs and Datasets are mapped directly, and
+    a Group is recursively mapped into a dictionary."""
+    if key in group.attrs:
+        return _decode(group.attrs[key])
     item = group[key]
     if isinstance(item, h5py.Group):
         result = {k: _decode(v) for k, v in item.attrs.items()}
@@ -217,7 +221,7 @@ def _read_list(
 ) -> list | None:
     """Read a `list[X]` field. X is one declared type applied to every
     element (elements may be ragged in shape/length if X is ndarray, but
-    not mixed types"""
+    not mixed types)"""
     args = typing.get_args(ann)
     elem_type = _unwrap(args[0]) if args else typing.Any
     elem_is_model = isinstance(elem_type, type) and issubclass(

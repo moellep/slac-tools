@@ -136,6 +136,20 @@ def test_optional_fields_omitted_when_none(tmp_path):
     _assert_equal(s, _round_trip(s, tmp_path))
 
 
+def test_raw_data_includes_scalar_values(tmp_path):
+    # dict[str, Any] values that land as a plain h5py attr (scalars) used
+    # to be silently dropped on read -- only children (groups/datasets)
+    # were enumerated, missing anything that was actually in group.attrs.
+    s = _make_sample(
+        raw_data={
+            "count": 3,
+            "label": "wire-scan",
+            "nested": {"x": numpy.array([1.0])},
+        }
+    )
+    _assert_equal(s, _round_trip(s, tmp_path))
+
+
 def test_round_trip_all_fields(tmp_path):
     s = _make_sample()
     _assert_equal(s, _round_trip(s, tmp_path))
